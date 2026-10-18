@@ -90,11 +90,7 @@ body {
     }
 }
 
-#list {
-    display: block;
-}
-
-#form {
+#list, #form {
     display: none;
 }
 

@@ -29,13 +29,12 @@ function createLink(icon, name, href) {
     a.href = href;
     p.appendChild(a);
 
-    fadeIn(p);
     return p;
 }
 
 function createParagraph(className, text) {
     let p = document.createElement('p');
-    p.className = className;
+    p.classList.add(className);
     p.innerHTML = text;
     return p;
 }
@@ -55,7 +54,7 @@ function createSpoiler(className, textSummary, textDetails) {
 
 function createButton(text) {
     let btnWrapper = document.createElement('div');
-    btnWrapper.className = 'btn-wrapper';
+    btnWrapper.classList.add('btn-wrapper');
 
     let button = document.createElement('button');
     button.type = 'button';
@@ -90,7 +89,7 @@ function createRadioGroup(i, q) {
 
     q.answers.split('\n').forEach((answer, j) => {
         let radioLine = document.createElement('label');
-        radioLine.className = 'radio-line';
+        radioLine.classList.add('radio-line');
 
         let radio = document.createElement('input');
         radio.type = q.multiple ? 'checkbox' : 'radio';
@@ -134,22 +133,31 @@ function createRadioGroup(i, q) {
     return radioGroup;
 }
 
+function showTests() {
+    list.style.display = 'block';
+    list.innerHTML = '<p class="question">Выберите тест:</p>';
+
+    fetch('?action=get_tests')
+        .then(response => response.json())
+        .then(tests => tests.forEach(test => {
+            let link = createLink('test.png', test.name, `?testid=${test.id}`);
+            list.appendChild(link);
+        }));
+
+    fadeIn(list);
+}
+
 function showQuestions() {
-    list.innerHTML = '';
-    list.style.display = 'none';
-    
     let formData = new FormData();
     formData.append('test', testId);
 
-    fetch('index.php?action=get_questions', { method: 'POST', body: formData })
+    fetch('?action=get_questions', { method: 'POST', body: formData })
         .then(response => response.json())
         .then(questions => buildQuestions(questions, formData));
 }
 
 function buildQuestions(questions, formData) {
-    form.innerHTML = '';
-    
-    fetch('index.php?action=get_test', { method: 'POST', body: formData })
+    fetch('?action=get_test', { method: 'POST', body: formData })
         .then(response => response.json())
         .then(test => {
             if (test.name) {
@@ -173,10 +181,10 @@ function buildQuestions(questions, formData) {
                     if (q.answer !== undefined)
                         checkAnswers(i, q.answer, q.right_answer);
                 });
+
+                fadeIn(form);
             }
         });
-
-    fadeIn(form);
 }
 
 function sendAnswer(question, answer) {
@@ -185,9 +193,12 @@ function sendAnswer(question, answer) {
     formData.append('question', question);
     formData.append('answer', answer);
 
-    fetch('index.php?action=send_answer', { method: 'POST', body: formData })
-        .then(response => response.ok ? response.text() : null)
-        .then(right_answer => checkAnswers(question, answer, right_answer));
+    fetch('?action=send_answer', { method: 'POST', body: formData })
+        .then(response => response.text())
+        .then(text => {
+            let rightAnswer = parseInt(text);
+            checkAnswers(question, answer, rightAnswer)
+        });
 }
 
 function checkEqual(i, answer, size) {
@@ -199,31 +210,31 @@ function checkEqual(i, answer, size) {
     }
 }
 
-function checkAnswers(question, answer, right_answer) {
+function checkAnswers(question, answer, rightAnswer) {
     let radios = document.getElementsByName(`q${question}`);
     let size = radios.length;
     for (let i = 0; i < size; i++) {
         radios[i].checked = checkEqual(i, answer, size);
-        let color = checkEqual(i, right_answer, size) ? 'green' : 'red';
+        let color = checkEqual(i, rightAnswer, size) ? 'green' : 'red';
         radios[i].style.backgroundColor = color;
         radios[i].disabled = true;
         let formData = new FormData();
         formData.append('test', testId);
         formData.append('question', question);
         formData.append('i', i);
-        if (right_answer < 0) // флажки
+        if (rightAnswer < 0) // флажки
             formData.append('size', size);
-        fetch('index.php?action=get_statistics', { method: 'POST', body: formData })
+        fetch('?action=get_statistics', { method: 'POST', body: formData })
             .then(response => response.json())
             .then(arr => {
-                document.getElementById(`q${question}a${i}percent`).innerHTML = Math.round(arr[0] / arr[1] * 100) + '%';
-                document.getElementById(`q${question}a${i}quantity`).innerHTML = arr[0];
+                document.getElementById(`q${question}a${i}percent`).textContent = Math.round(arr[0] / arr[1] * 100) + '%';
+                document.getElementById(`q${question}a${i}quantity`).textContent = arr[0];
             });
     }
-    if (right_answer < 0) // флажки
+    if (rightAnswer < 0) // флажки
         document.getElementById(`q${question}button`).style.display = 'none';
     document.getElementById(`q${question}expl`).style.display = 'block';
-    if (answer != right_answer)
+    if (answer != rightAnswer)
         document.getElementById(`q${question}expl`).open = true;
 }
 
@@ -233,24 +244,19 @@ let list = document.getElementById('list');
 let params = new URLSearchParams(document.location.search);
 let testId = params.get('testid');
 if (!testId) {
-    list.innerHTML = '<p class="question">Выберите тест:</p>';
-
-    fetch('index.php?action=get_tests')
-        .then(response => response.json())
-        .then(tests => tests.forEach(t =>
-            list.appendChild(createLink('test.png', t.name, `?testid=${t.id}`))));
+    showTests();
 } else {
     showQuestions();
 }
 
 for (let i = 0; i < 400; i++) {
-    let p = document.createElement('div');
-    p.className = 'particle';
+    let particle = document.createElement('div');
+    particle.classList.add('particle');
 
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.animationDuration = (4 + Math.random() * 7) + 's';
-    p.style.animationDelay = Math.random() * 10 + 's';
-    p.style.opacity = Math.random();
+    particle.style.left = Math.random() * 100 + 'vw';
+    particle.style.animationDuration = (4 + Math.random() * 7) + 's';
+    particle.style.animationDelay = Math.random() * 10 + 's';
+    particle.style.opacity = Math.random();
 
-    document.querySelector('.particles').appendChild(p);
+    document.querySelector('.particles').appendChild(particle);
 }
