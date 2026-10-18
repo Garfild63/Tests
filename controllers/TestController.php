@@ -7,7 +7,12 @@ class TestController {
     private function getTitle() {
         if (isset($_GET['testid'])) {
             $test = intval($_GET['testid']);
-            $title = $this->model->getTest($test)['name'];
+            $arr = $this->model->getTest($test);
+            if (isset($arr['name'])) {
+                $title = $arr['name'];
+            } else {
+                $title = 'Ошибка! Такого теста не существует';
+            }
         } else {
             $title = 'Тесты по проповедям церкви "Дом Благодати"';
         }

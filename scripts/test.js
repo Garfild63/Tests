@@ -1,9 +1,25 @@
+function fadeIn(element) {
+    element.style.opacity = '0';
+    element.style.transform = 'translateY(10px)';
+    element.style.transition = '0.4s ease';
+
+    requestAnimationFrame(() => {
+        element.style.opacity = '1';
+        element.style.transform = 'translateY(0)';
+    });
+}
+
+function createImage(src) {
+    let img = document.createElement('img');
+    img.src = `images/${src}`;
+    return img;
+}
+
 function createLink(icon, name, href) {
     let p = document.createElement('p');
     p.classList.add('link');
     
-    let img = document.createElement('img');
-    img.src = `images/${icon}`;
+    let img = createImage(icon);
     img.width = 32;
     img.height = 32;
     p.appendChild(img);
@@ -17,149 +33,159 @@ function createLink(icon, name, href) {
     return p;
 }
 
-function fadeIn(element) {
-    element.style.opacity = '0';
-    element.style.transform = 'translateY(10px)';
-    element.style.transition = '0.4s ease';
-
-    requestAnimationFrame(() => {
-        element.style.opacity = '1';
-        element.style.transform = 'translateY(0)';
-    });
+function createParagraph(className, text) {
+    let p = document.createElement('p');
+    p.className = className;
+    p.innerHTML = text;
+    return p;
 }
 
-function showQuestions() {
-    list.innerHTML = '';
-    list.style.display = 'none';
-    form.style.display = 'block';
-    
-    let dt = new FormData();
-    dt.append('test', testId);
+function createSpoiler(className, textSummary, textDetails) {
+    let details = document.createElement('details');
 
-    fetch('index.php?action=get_questions', { method: 'POST', body: dt })
-        .then(response => response.json())
-        .then(questions => buildQuestions(questions, dt));
+    let summary = document.createElement('summary');
+    summary.textContent = textSummary;
+    details.appendChild(summary);
+
+    let p = createParagraph(className, textDetails);
+    details.appendChild(p);
+
+    return details;
 }
 
-function buildQuestions(questions, dt) {
-    form.innerHTML = '';
-    
-    let div = document.createElement('div');
-    div.classList.add('block');
-    div.innerHTML = '<p class="question">Ссылки на проповедь:</p>';
-    fetch('index.php?action=get_test', { method: 'POST', body: dt })
-        .then(response => response.json())
-        .then(test => {
-            if (test.vkvideo)
-                div.appendChild(createLink('vk.png', 'ВК Видео', test.vkvideo));
-            if (test.youtube)
-                div.appendChild(createLink('youtube.png', 'Ютуб', test.youtube));
-            if (test.presentation)
-                div.appendChild(createLink('presentation.png', 'Презентация', `pdf/${test.presentation}`));
-            if (test.printout)
-                div.appendChild(createLink('printout.png', 'Распечатка', `pdf/${test.printout}`));
-        });
-    form.appendChild(div);
+function createButton(text) {
+    let btnWrapper = document.createElement('div');
+    btnWrapper.className = 'btn-wrapper';
 
-    questions.forEach((q, i) => {
-        form.appendChild(createRadioGroup(i, q));
-        if (q.answer !== undefined)
-            checkAnswers(i, q.answer, q.right_answer);
-    });
+    let button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = text;
 
-    fadeIn(form);
+    btnWrapper.appendChild(button);
+    return btnWrapper;
 }
 
 function createRadioGroup(i, q) {
-    let div = document.createElement('div');
-    div.classList.add('block');
+    let radioGroup = document.createElement('div');
+    radioGroup.classList.add('block');
     
     if (q.description) {
-        let detailsDescr = document.createElement('details');
-        let summaryDescr = document.createElement('summary');
-        summaryDescr.textContent = '👀 Подсказка';
-        detailsDescr.appendChild(summaryDescr);
-        let pDescr = document.createElement('p');
-        pDescr.className = 'description';
-        pDescr.innerHTML = q.description;
-        detailsDescr.appendChild(pDescr);
-        div.appendChild(detailsDescr);
+        let description = createSpoiler('description',
+            '👀 Подсказка', q.description);
+        radioGroup.appendChild(description);
     }
 
-    let pQuestion = document.createElement('p');
-    pQuestion.className = 'question';
-    pQuestion.innerHTML = q.question;
-    div.appendChild(pQuestion);
-    
-    let detailsExpl = document.createElement('details');
-    let summaryExpl = document.createElement('summary');
-    summaryExpl.textContent = '💡';
-    detailsExpl.appendChild(summaryExpl);
-    let pExpl = document.createElement('p');
-    pExpl.innerHTML = q.explanation;
-    detailsExpl.appendChild(pExpl);
+    let question = createParagraph('question', q.question);
+    radioGroup.appendChild(question);
+
+    let explanation = createSpoiler('explanation',
+        '💡', q.explanation);
     if (q.explanation_media) {
-        let imgExpl = document.createElement('img');
-        imgExpl.src = `images/${q.explanation_media}`;
-        detailsExpl.appendChild(imgExpl);
+        let explanationMedia = createImage(q.explanation_media);
+        explanation.appendChild(explanationMedia);
     }
-    detailsExpl.style.display = 'none';
-    detailsExpl.id = `q${i}expl`;
-    div.appendChild(detailsExpl);
+    explanation.style.display = 'none';
+    explanation.id = `q${i}expl`;
+    radioGroup.appendChild(explanation);
 
     q.answers.split('\n').forEach((answer, j) => {
-        let label = document.createElement('label');
-        label.className = 'radio-line';
+        let radioLine = document.createElement('label');
+        radioLine.className = 'radio-line';
 
         let radio = document.createElement('input');
         radio.type = q.multiple ? 'checkbox' : 'radio';
         radio.name = `q${i}`;
         radio.value = j;
-        radio.id = `q${i}a${j}`;
         if (!q.multiple) // переключатели
             radio.onclick = () => sendAnswer(i, j);
-        label.appendChild(radio);
+        radioLine.appendChild(radio);
         
-        let span1 = document.createElement('span');
-        span1.id = `q${i}a${j}percent`;
-        label.appendChild(span1);
+        let percent = document.createElement('span');
+        percent.id = `q${i}a${j}percent`;
+        radioLine.appendChild(percent);
 
-        let span2 = document.createElement('span');
-        span2.innerHTML = answer;
-        label.appendChild(span2);
+        let textAnswer = document.createElement('span');
+        textAnswer.innerHTML = answer;
+        radioLine.appendChild(textAnswer);
         
-        let span3 = document.createElement('span');
-        span3.id = `q${i}a${j}quantity`;
-        label.appendChild(span3);
+        let quantity = document.createElement('span');
+        quantity.id = `q${i}a${j}quantity`;
+        radioLine.appendChild(quantity);
 
-        div.appendChild(label);
+        radioGroup.appendChild(radioLine);
     });
     
     if (q.multiple) { // флажки
-        let btn = createButton('Проголосовать');
-        btn.id = `q${i}button`;
-        btn.onclick = () => {
+        let button = createButton('Ответить');
+        button.id = `q${i}button`;
+        button.onclick = () => {
             let flags = 0;
-            let size = document.getElementsByName(`q${i}`).length;
+            let radios = document.getElementsByName(`q${i}`);
+            let size = radios.length;
             for (let j = 0; j < size; j++) {
-                flags -= document.getElementById(`q${i}a${j}`).checked << (size - 1 - j);
+                flags -= radios[j].checked << (size - 1 - j);
             }
             if (flags < 0)
                 sendAnswer(i, flags);
         };
-        div.appendChild(btn);
+        radioGroup.appendChild(button);
     }
 
-    return div;
+    return radioGroup;
+}
+
+function showQuestions() {
+    list.innerHTML = '';
+    list.style.display = 'none';
+    
+    let formData = new FormData();
+    formData.append('test', testId);
+
+    fetch('index.php?action=get_questions', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(questions => buildQuestions(questions, formData));
+}
+
+function buildQuestions(questions, formData) {
+    form.innerHTML = '';
+    
+    fetch('index.php?action=get_test', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(test => {
+            if (test.name) {
+                form.style.display = 'block';
+                
+                let links = document.createElement('div');
+                links.classList.add('block');
+                links.innerHTML = '<p class="question">Ссылки на проповедь:</p>';
+                if (test.vkvideo)
+                    links.appendChild(createLink('vk.png', 'ВК Видео', test.vkvideo));
+                if (test.youtube)
+                    links.appendChild(createLink('youtube.png', 'Ютуб', test.youtube));
+                if (test.presentation)
+                    links.appendChild(createLink('presentation.png', 'Презентация', `pdf/${test.presentation}`));
+                if (test.printout)
+                    links.appendChild(createLink('printout.png', 'Распечатка', `pdf/${test.printout}`));
+                form.appendChild(links);
+
+                questions.forEach((q, i) => {
+                    form.appendChild(createRadioGroup(i, q));
+                    if (q.answer !== undefined)
+                        checkAnswers(i, q.answer, q.right_answer);
+                });
+            }
+        });
+
+    fadeIn(form);
 }
 
 function sendAnswer(question, answer) {
-    let dt = new FormData();
-    dt.append('test', testId);
-    dt.append('question', question);
-    dt.append('answer', answer);
+    let formData = new FormData();
+    formData.append('test', testId);
+    formData.append('question', question);
+    formData.append('answer', answer);
 
-    fetch('index.php?action=send_answer', { method: 'POST', body: dt })
+    fetch('index.php?action=send_answer', { method: 'POST', body: formData })
         .then(response => response.ok ? response.text() : null)
         .then(right_answer => checkAnswers(question, answer, right_answer));
 }
@@ -174,19 +200,20 @@ function checkEqual(i, answer, size) {
 }
 
 function checkAnswers(question, answer, right_answer) {
-    let size = document.getElementsByName(`q${question}`).length;
+    let radios = document.getElementsByName(`q${question}`);
+    let size = radios.length;
     for (let i = 0; i < size; i++) {
-        document.getElementById(`q${question}a${i}`).checked = checkEqual(i, answer, size);
+        radios[i].checked = checkEqual(i, answer, size);
         let color = checkEqual(i, right_answer, size) ? 'green' : 'red';
-        document.getElementById(`q${question}a${i}`).style.backgroundColor = color;
-        document.getElementById(`q${question}a${i}`).disabled = true;
-        let dt = new FormData();
-        dt.append('test', testId);
-        dt.append('question', question);
-        dt.append('i', i);
+        radios[i].style.backgroundColor = color;
+        radios[i].disabled = true;
+        let formData = new FormData();
+        formData.append('test', testId);
+        formData.append('question', question);
+        formData.append('i', i);
         if (right_answer < 0) // флажки
-            dt.append('size', size);
-        fetch('index.php?action=get_statistics', { method: 'POST', body: dt })
+            formData.append('size', size);
+        fetch('index.php?action=get_statistics', { method: 'POST', body: formData })
             .then(response => response.json())
             .then(arr => {
                 document.getElementById(`q${question}a${i}percent`).innerHTML = Math.round(arr[0] / arr[1] * 100) + '%';
@@ -200,19 +227,6 @@ function checkAnswers(question, answer, right_answer) {
         document.getElementById(`q${question}expl`).open = true;
 }
 
-function createButton(text) {
-    let div = document.createElement('div');
-    div.className = 'btn-wrapper';
-
-    let btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = text;
-    btn.onclick = () => sendAnswers();
-
-    div.appendChild(btn);
-    return div;
-}
-
 let form = document.getElementById('form');
 let list = document.getElementById('list');
 
@@ -223,7 +237,8 @@ if (!testId) {
 
     fetch('index.php?action=get_tests')
         .then(response => response.json())
-        .then(tests => tests.forEach(t => list.appendChild(createLink('test.png', t.name, `?testid=${t.id}`))));
+        .then(tests => tests.forEach(t =>
+            list.appendChild(createLink('test.png', t.name, `?testid=${t.id}`))));
 } else {
     showQuestions();
 }
