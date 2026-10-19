@@ -11,8 +11,6 @@
     <link rel="stylesheet" href="css/styles.css"/>
 </head>
 <body>
-    <div class="stars1"></div>
-    <div class="stars2"></div>
     <div class="particles"></div>
 
     <div class="container">

@@ -4,7 +4,27 @@ require_once 'models/TestModel.php';
 class TestController {
     private $model;
     
-    private function getTitle() {
+    private function getSessionId() {
+        session_set_cookie_params(time() + 365 * 24 * 3600);
+        session_start();
+        return session_id();
+    }
+
+    private function echoJson($arr) {
+        header('Content-Type: application/json');
+        echo json_encode($arr,
+            JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+    }
+
+    public function __construct() {
+        $this->model = new TestModel();
+    }
+
+    public function renderIndex() {
+        include 'views/TestView.php';
+    }
+
+    public function getTitle() {
         if (isset($_GET['testid'])) {
             $test = intval($_GET['testid']);
             $arr = $this->model->getTest($test);
@@ -19,44 +39,26 @@ class TestController {
         return $title;
     }
     
-    private function getSessionId() {
-        session_set_cookie_params(time() + 365 * 24 * 3600);
-        session_start();
-        return session_id();
-    }
-
-    public function __construct() {
-        $this->model = new TestModel();
-    }
-
-    public function renderIndex() {
-        include 'views/TestView.php';
-    }
-
     public function getTests() {
-        header('Content-Type: application/json');
-        echo json_encode($this->model->getTests(), JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+        $this->echoJson($this->model->getTests());
     }
     
     public function getTest() {
-        header('Content-Type: application/json');
         if (isset($_POST['test'])) {
             $test = intval($_POST['test']);
-            echo json_encode($this->model->getTest($test), JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+            $this->echoJson($this->model->getTest($test));
         }
     }
     
     public function getQuestions() {
-        header('Content-Type: application/json');
         if (isset($_POST['test'])) {
             $test = intval($_POST['test']);
             $sessid = $this->getSessionId();
-            echo json_encode($this->model->getQuestions($test, $sessid), JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+            $this->echoJson($this->model->getQuestions($test, $sessid));
         }
     }
     
     public function getStatistics() {
-        header('Content-Type: application/json');
         if (isset($_POST['test'], $_POST['question'], $_POST['i'])) {
             $test = intval($_POST['test']);
             $question = intval($_POST['question']);
@@ -67,7 +69,7 @@ class TestController {
                 $size = intval($_POST['size']);
                 $multiple = true;
             }
-            echo json_encode($this->model->getStatistics($test, $question, $i, $size, $multiple), JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+            $this->echoJson($this->model->getStatistics($test, $question, $i, $size, $multiple));
         }
     }
     
